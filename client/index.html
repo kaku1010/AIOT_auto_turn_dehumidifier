@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>除濕機</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .navbar {
+            overflow: hidden;
+            background-color: #333;
+        }
+
+        .navbar a {
+            float: left;
+            display: block;
+            color: white;
+            text-align: center;
+            padding: 14px 20px;
+            text-decoration: none;
+        }
+
+        .navbar a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .section {
+            display: none;
+        }
+
+        .section.active {
+            display: block;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function showSection(sectionId) {
+            var sections = document.getElementsByClassName('section');
+            for (var i = 0; i < sections.length; i++) {
+                sections[i].classList.remove('active');
+            }
+            document.getElementById(sectionId).classList.add('active');
+
+            if (sectionId === 'current') {
+                fetchCurrentData();
+            } else if (sectionId === 'analysis') {
+                fetchDataAndDrawChart();
+            } else if (sectionId === 'control') {
+                fetchWaterLevel();
+                fetchTHData();
+            }
+        }
+
+        function fetchCurrentData() {
+            fetch('current_data.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                    } else {
+                        document.getElementById('current-timestamp').innerText = `Timestamp: ${data.timestamp}`;
+                        document.getElementById('current-temp').innerText = `Temperature: ${data.temperature} °C`;
+                        document.getElementById('current-humi').innerText = `Humidity: ${data.humidity} %`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                });
+        }
+
+        function fetchDataAndDrawChart() {
+            fetch('get_data.php')
+                .then(response => response.json())
+                .then(data => {
+                    drawChart(data);
+                });
+        }
+
+        function drawChart(data) {
+            var ctx = document.getElementById('myChart').getContext('2d');
+            var myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: '溫度',
+                        data: data.temperature,
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        borderWidth: 1
+                    },
+                    {
+                        label: '濕度',
+                        data: data.humidity,
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function fetchWaterLevel() {
+            fetch('get_water_level.php')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('water-level').innerText = `水位狀態: ${data}`;
+                })
+                .catch(error => {
+                    console.error('Error fetching water level:', error);
+                });
+        }
+
+        function fetchTHData() {
+            fetch('get_th.php')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('th-status').innerText = `當前溫溼度: ${data}`;
+                })
+                .catch(error => {
+                    console.error('Error fetching temperature and humidity:', error);
+                });
+        }
+
+        // 默认显示第一个section
+        showSection('analysis');
+    </script>
+</head>
+
+<body>
+    <h1>除濕機</h1>
+    <div class="navbar">
+        <a href="javascript:void(0)" onclick="showSection('analysis')">溫溼度分析</a>
+        <a href="javascript:void(0)" onclick="showSection('current')">最新溫溼度</a>
+        <a href="javascript:void(0)" onclick="showSection('control')">控制除濕機</a>
+    </div>
+
+    <div class="content">
+        <section id="analysis" class="section">
+            <h2>溫溼度分析</h2>
+            <canvas id="myChart" width="800" height="400"></canvas>
+        </section>
+
+        <section id="current" class="section">
+            <h2>最新溫溼度</h2>
+            <p id="current-timestamp">Timestamp: </p>
+            <p id="current-temp">Temperature: </p>
+            <p id="current-humi">Humidity: </p>
+        </section>
+
+        <section id="control" class="section">
+            <h2>控制除濕機</h2>
+            <p id="water-level">水位狀態: </p>
+            <p id="th-status">當前溫溼度: </p>
+
+            <form method="post" action="control.php">
+                <button type="submit" name="action" value="ron">開除濕機</button>
+                <button type="submit" name="action" value="rof">關除濕機</button>
+            </form>
+
+        </section>
+    </div>
+</body>
+
+</html>
